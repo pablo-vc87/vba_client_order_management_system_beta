@@ -67,3 +67,59 @@ Ejemplo:
 1. Clona el repositorio:
    ```bash
    git clone https://github.com/alienfibio-25/vba_client_order_management_system_beta.git
+
+# ojo
+
+## Diagrama de Relación de Entidades
+
+```mermaid
+erDiagram
+    CLIENTES {
+        string NombreCliente PK
+        string RazonSocial
+        string RFC
+        string Telefono
+        string Telefono2
+        string Email
+        string DomicilioFiscal
+    }
+    
+    PEDIDOS {
+        int PedidoID PK
+        date FechaPedido
+        string NombreCliente FK
+        string RazonSocial
+        string RFC
+        string Telefono
+        string Telefono2
+        string Email
+        string DomicilioFiscal
+        string DireccionEntrega
+        date FechaEntrega
+        string Estatus
+        decimal SubtotalPedido
+        decimal IVAPedido
+        decimal TotalPedido
+    }
+    
+    DETALLE_PEDIDOS {
+        int PedidoID FK
+        int NoProducto
+        string Tecnica
+        string Material
+        date FechaRecepcion
+        int Cantidad
+        decimal PrecioUnitario
+        string NombreLogo
+        string TamanoLogo
+        string Pantone
+        string RutaRender
+        string Observaciones
+        decimal SubtotalProducto
+        decimal IVAProducto
+        decimal TotalProducto
+    }
+    
+    CLIENTES ||--o{ PEDIDOS : "realiza"
+    PEDIDOS ||--o{ DETALLE_PEDIDOS : "contiene"
+```
