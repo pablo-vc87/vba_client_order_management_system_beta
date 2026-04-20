@@ -2,75 +2,128 @@
 
 Sistema de gestión de clientes y pedidos desarrollado en **Excel VBA**, diseñado para automatizar procesos administrativos como el registro, actualización y consulta de información.
 
-## 🚀 Características
+---
 
-- 📋 Registro de clientes
-- ✏️ Actualización de datos de clientes
-- 🔍 Búsqueda y filtrado de información
-- 📦 Gestión de pedidos
-- 🧩 Formularios interactivos (UserForms)
-- 🗂️ Manejo estructurado de datos en hojas de Excel
-- ⚙️ Automatización mediante macros
+## 🎬 System Demo
 
-## 🛠️ Tecnologías utilizadas
+This video demonstrates the main functionalities of the system:
 
-- Microsoft Excel (.xlsm)
-- VBA (Visual Basic for Applications)
+* User authentication (login)
+* Order registration
+* Order modification
+* Order deletion
+* Data validation and structured storage
 
-## 📁 Estructura del proyecto
+<video src="docs/system_demo_vba.mp4" controls width="700"></video>
+
+[▶️ Download or watch the video](docs/system_demo_vba.mp4)
+
+---
+
+## 🚀 Features
+
+* 📋 Client registration
+* ✏️ Client data update
+* 🔍 Search and filtering
+* 📦 Order management (CRUD)
+* 🧩 Interactive UserForms
+* 🗂️ Structured data handling in Excel sheets
+* ⚙️ Automation using VBA macros
+
+---
+
+## 🛠️ Technologies Used
+
+* Microsoft Excel (.xlsm)
+* VBA (Visual Basic for Applications)
+
+---
+
+## 📁 Project Structure
+
+```
 .
-├── README.md (this file)
-├── docs
-├── excel
+├── LICENSE
+├── README.md
+├── docs/
+├── excel/
 │   └── Caleido_Pedidos_Database_prefinal.xlsm
-└── src
-    ├── classes
+└── src/
+    ├── classes/
     │   ├── clsDiaCalendario.cls
     │   └── clsEventosProducto.cls
-    ├── forms
+    ├── forms/
     │   ├── Busqueda.frm
     │   ├── Eliminar.frm
     │   ├── Entrada.frm
     │   ├── UserForm1.frm
     │   ├── frmCalendario.frm
     │   └── mostrar_imagen.frm
-    └── modules
+    └── modules/
         ├── Lammado_de_Formularios.bas
         ├── ModuloCalendario.bas
         ├── ModuloClientes.bas
         ├── ModuloRegModElim.bas
         ├── ModuloValidaciones.bas
         └── ped_id_creator.bas
+```
 
-## 🧠 Arquitectura
+---
 
-El sistema sigue una estructura modular:
+## 🧠 Architecture
 
-- **Módulos**: lógica principal del sistema
-- **Formularios**: interfaz de usuario
-- **Clases**: manejo de entidades (clientes, pedidos, resultados, etc.)
+The system follows a modular design:
 
-Se implementa separación de responsabilidades para facilitar mantenimiento y escalabilidad.
+* **Modules** → Core business logic
+* **UserForms** → User interface
+* **Classes** → Entity handling (clients, orders, products)
 
-## 🎬 Demostración
+### 🔄 Workflow
 
-*(Aquí puedes agregar GIFs grabados con OBS y convertidos)*
+User → Form → Validation → Data storage (Excel sheets) → Confirmation
 
-Ejemplo:
+This separation improves maintainability and scalability.
 
-- Alta de cliente
-- Edición de datos
-- Flujo de pedidos
+---
 
-## ⚙️ Instalación y uso
+## ⚙️ Installation & Usage
 
-1. Clona el repositorio:
-   ```bash
-   git clone https://github.com/alienfibio-25/vba_client_order_management_system_beta.git
+### Prerequisites
 
-# ojo
+* Microsoft Excel (2010 or later recommended)
+* Macros enabled
 
-## Diagrama de Relación de Entidades
+### Installation
+
+```bash
+git clone https://github.com/alienfibio-25/vba_client_order_management_system_beta.git
+cd vba_client_order_management_system_beta
+```
+
+### Run
+
+1. Go to `excel/`
+2. Open `Caleido_Pedidos_Database_prefinal.xlsm`
+3. Enable macros when prompted
+
+---
+
+## ⚠️ Macro Security Notice
+
+This project uses VBA macros.
+
+If macros are blocked:
+
+1. Right-click the `.xlsm` file
+2. Go to **Properties**
+3. Check **Unblock**
+4. Enable macros when opening in Excel
+
+Alternatively, move the file to a trusted location in Excel settings.
+
+---
+
+## 📊 Entity Relationship Diagram
 
 ```mermaid
 erDiagram
@@ -120,6 +173,28 @@ erDiagram
         decimal TotalProducto
     }
     
-    CLIENTES ||--o{ PEDIDOS : "realiza"
-    PEDIDOS ||--o{ DETALLE_PEDIDOS : "contiene"
+    CLIENTES ||--o{ PEDIDOS : "places"
+    PEDIDOS ||--o{ DETALLE_PEDIDOS : "contains"
 ```
+
+## 🤝 Contributing
+
+Contributions are welcome:
+
+1. Fork the repository
+2. Create a branch (`feature/your-feature`)
+3. Commit changes
+4. Push and open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+## 📞 Contact
+
+* Author: [Pablo A. V. Calva](https://github.com/alienfibio-25)
+* Project: [GitHub Repository](https://github.com/alienfibio-25/vba_client_order_management_system_beta)
