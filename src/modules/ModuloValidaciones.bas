@@ -151,6 +151,133 @@ Public Function ValidarPagina2() As Boolean
 End Function
 
 '=================================================
+' VALIDAR FECHAS
+' Entrega y recepciones no pueden ser anteriores a la fecha del pedido,
+' y ninguna recepción puede ser posterior a la entrega (el mismo día sí se permite)
+'=================================================
+Public Function ValidarFechas() As Boolean
+
+    Dim ctrl As Control
+    Dim fPedido As Date, fEntrega As Date
+    Dim hayEntrega As Boolean
+    Dim ok As Boolean
+    Dim msg As String
+
+    ok = True
+
+    With UserForm1
+        If Not IsDate(.txtFechaActual.Value) Then
+            ValidarFechas = True
+            Exit Function
+        End If
+        fPedido = CDate(.txtFechaActual.Value)
+
+        'FECHA DE ENTREGA
+        .txtFechaEntrega.BackColor = vbWhite
+        If Trim(.txtFechaEntrega.Value) <> "" Then
+            hayEntrega = True
+            fEntrega = CDate(.txtFechaEntrega.Value)
+            If fEntrega < fPedido Then
+                .txtFechaEntrega.BackColor = RGB(255, 180, 180)
+                msg = msg & "- La fecha de entrega es anterior a la fecha del pedido." & vbCrLf
+                ok = False
+            End If
+        End If
+
+        'FECHAS DE RECEPCIÓN DE CADA PRODUCTO
+        For Each ctrl In .frProductos.Controls
+            If ctrl.Name Like "txtFechaRec*" Then
+                ctrl.BackColor = RGB(240, 240, 240)
+                If Trim(ctrl.Value) <> "" Then
+                    If CDate(ctrl.Value) < fPedido Then
+                        ctrl.BackColor = RGB(255, 180, 180)
+                        msg = msg & "- Producto " & Mid(ctrl.Name, 12) & _
+                              ": la recepción es anterior a la fecha del pedido." & vbCrLf
+                        ok = False
+                    ElseIf hayEntrega Then
+                        If CDate(ctrl.Value) > fEntrega Then
+                            ctrl.BackColor = RGB(255, 180, 180)
+                            msg = msg & "- Producto " & Mid(ctrl.Name, 12) & _
+                                  ": la recepción es posterior a la entrega." & vbCrLf
+                            ok = False
+                        End If
+                    End If
+                End If
+            End If
+        Next ctrl
+    End With
+
+    If Not ok Then
+        MsgBox "Revise las fechas:" & vbCrLf & vbCrLf & msg, vbExclamation, "CALEIDO"
+    End If
+
+    ValidarFechas = ok
+
+End Function
+
+'=================================================
+' FECHA DEL FORMULARIO -> VALOR DE CELDA
+' Si se escribe el texto "05/02/2026" en una celda, Excel lo lee como mes/día
+' (5 de mayo). CDate respeta la configuración regional (día/mes).
+'=================================================
+Public Function ValorFecha(ByVal v As Variant) As Variant
+    If Trim(CStr(v)) = "" Then
+        ValorFecha = Empty
+    ElseIf IsDate(v) Then
+        ValorFecha = CDate(v)
+    Else
+        ValorFecha = v
+    End If
+End Function
+
+'=================================================
+' NÚMERO DE CELDA -> TEXTO DEL FORMULARIO
+' Asignar un número a un TextBox usa el separador decimal de Windows (coma), pero
+' los campos solo aceptan punto y Val("1500,5") da 1500. Str siempre usa punto.
+'=================================================
+Public Function NumeroATexto(ByVal v As Variant) As String
+    If IsNumeric(v) And Trim(CStr(v)) <> "" Then
+        NumeroATexto = Trim(Str(CDbl(v)))
+        If Left(NumeroATexto, 1) = "." Then NumeroATexto = "0" & NumeroATexto
+    Else
+        NumeroATexto = CStr(v)
+    End If
+End Function
+
+'=================================================
+' REPARAR FECHAS GUARDADAS COMO TEXTO (correr una vez)
+' Pedidos B y K, Detalle_Pedidos E
+'=================================================
+Public Sub RepararFechasTexto()
+    Dim c As Range, n As Long
+
+    For Each c In Union(Sheets("Pedidos").Range("B2:B" & UltimaFila("Pedidos")), _
+                        Sheets("Pedidos").Range("K2:K" & UltimaFila("Pedidos")))
+        If ConvertirCeldaFecha(c) Then n = n + 1
+    Next c
+    For Each c In Sheets("Detalle_Pedidos").Range("E2:E" & UltimaFila("Detalle_Pedidos"))
+        If ConvertirCeldaFecha(c) Then n = n + 1
+    Next c
+
+    Sheets("Pedidos").Range("B:B,K:K").NumberFormat = "dd/mm/yyyy"
+    Sheets("Detalle_Pedidos").Range("E:E").NumberFormat = "dd/mm/yyyy"
+    MsgBox n & " fechas convertidas de texto a fecha.", vbInformation, "CALEIDO"
+End Sub
+
+Private Function ConvertirCeldaFecha(ByVal c As Range) As Boolean
+    If VarType(c.Value) = vbString Then
+        If IsDate(c.Value) Then
+            c.Value = CDate(c.Value)
+            ConvertirCeldaFecha = True
+        End If
+    End If
+End Function
+
+Private Function UltimaFila(ByVal hoja As String) As Long
+    UltimaFila = Sheets(hoja).Cells(Sheets(hoja).Rows.Count, "A").End(xlUp).Row
+End Function
+
+'=================================================
 ' LIMPIAR TEXTO (SOLO LETRAS)
 '=================================================
 Public Function LimpiarSoloTexto(ByVal texto As String) As String

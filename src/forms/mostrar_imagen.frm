@@ -22,7 +22,8 @@ Me.Width = 1133.4
 Me.StartUpPosition = 2
 
 On Error GoTo malemerga
-imggrande.Picture = LoadPicture(ActiveCell)
+Set imggrande.Picture = CargarPicture(RutaAbsolutaImagen(ActiveCell.Value))
+If imggrande.Picture Is Nothing Then GoTo malemerga
 imggrande.PictureSizeMode = fmPictureSizeModeZoom
 
 Exit Sub

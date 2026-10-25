@@ -2,16 +2,17 @@ Attribute VB_Name = "ModuloClientes"
 Public Type ResultadoCliente
     Existe As Boolean
     Fila As Long
-    Criterio As String ' "RFC" | "COINCIDENCIA" | ""
+    Criterio As String ' "COINCIDENCIA" | ""
 End Type
 
 
 ' ===============================================
 ' -------- DETECTAR CLIENTE EXISTENTE -----------
+' El cliente es el CONTACTO: se identifica por nombre + (teléfono o correo).
+' El RFC identifica a la empresa (ModuloEmpresas), no a la persona.
 ' ===============================================
 Public Function DetectarClienteExistente( _
     ByVal Nombre As String, _
-    ByVal RFC As String, _
     ByVal Tel1 As String, _
     ByVal Tel2 As String, _
     ByVal Email As String) As ResultadoCliente
@@ -25,22 +26,7 @@ Public Function DetectarClienteExistente( _
     ultFila = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
 
     ' ==========================
-    ' 1?? PRIORIDAD: RFC
-    ' ==========================
-    If Trim(RFC) <> "" Then
-        For i = 2 To ultFila
-            If Trim(ws.Cells(i, "C").Value) = Trim(RFC) Then
-                res.Existe = True
-                res.Fila = i
-                res.Criterio = "RFC"
-                DetectarClienteExistente = res
-                Exit Function
-            End If
-        Next i
-    End If
-
-    ' ==========================
-    ' 2?? COINCIDENCIA FLEXIBLE
+    ' 1?? COINCIDENCIA FLEXIBLE
     ' Nombre + (Tel o Email)
     ' ==========================
     For i = 2 To ultFila
@@ -74,7 +60,7 @@ Public Function DetectarClienteExistente( _
     Next i
 
     ' ==========================
-    ' 3?? NO EXISTE
+    ' 2?? NO EXISTE
     ' ==========================
     res.Existe = False
     res.Fila = 0
@@ -154,6 +140,7 @@ Public Function SnapshotClienteDesdeFila(ByVal Fila As Long) As Object
         d("Tel2") = Trim(.Cells(Fila, "E").Value)
         d("Email") = Trim(.Cells(Fila, "F").Value)
         d("DomFiscal") = Trim(.Cells(Fila, "G").Value)
+        d("EmpresaID") = Val(.Cells(Fila, "H").Value)
     End With
 
     Set SnapshotClienteDesdeFila = d
@@ -175,6 +162,7 @@ Public Function ClienteSnapshotFueModificado(ByVal snap As Object) As Boolean
     If snap("Tel2") <> Trim(UserForm1.txtTel2.Value) Then ClienteSnapshotFueModificado = True: Exit Function
     If snap("Email") <> Trim(UserForm1.txtEmail.Value) Then ClienteSnapshotFueModificado = True: Exit Function
     If snap("DomFiscal") <> Trim(UserForm1.txtDomFiscal.Value) Then ClienteSnapshotFueModificado = True: Exit Function
+    If snap("EmpresaID") <> UserForm1.EmpresaIDActual Then ClienteSnapshotFueModificado = True: Exit Function
 
     ClienteSnapshotFueModificado = False
 

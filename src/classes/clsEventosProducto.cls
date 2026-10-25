@@ -50,6 +50,7 @@ Private Sub Btn_Click()
     If Btn.Name Like "cmdImg*" Then
 
         Dim fd As FileDialog
+        Dim img As MSForms.Image
         'Dim ruta As String ' nvo
         Set fd = Application.FileDialog(msoFileDialogFilePicker)
 
@@ -60,9 +61,11 @@ Private Sub Btn_Click()
             .AllowMultiSelect = False
             
             If .Show Then
-                ParentForm.frProductos.Controls("txtImg" & Index).Value = .SelectedItems(1)
-                ParentForm.frProductos.Controls("imgPrev" & Index).Picture = _
-                    LoadPicture(.SelectedItems(1))
+                ' Copia la imagen a la carpeta del libro y guarda la ruta relativa
+                ParentForm.frProductos.Controls("txtImg" & Index).Value = _
+                    CopiarImagenAlLibro(.SelectedItems(1))
+                Set img = ParentForm.frProductos.Controls("imgPrev" & Index)
+                CargarImagenSeguro img, ParentForm.frProductos.Controls("txtImg" & Index).Value
                 ' ParentForm.MostrarPreviewImagen Index
             End If
             'If .Show <> -1 Then Exit Sub

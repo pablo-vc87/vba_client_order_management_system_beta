@@ -55,7 +55,7 @@ Public Sub ActualizarPedido()
     End If
 
     With Fila
-        .Cells(1, "B").Value = UserForm1.txtFechaActual.Value
+        .Cells(1, "B").Value = ValorFecha(UserForm1.txtFechaActual.Value)
         .Cells(1, "C").Value = UserForm1.txtNombreContacto.Value
         .Cells(1, "D").Value = UserForm1.txtRazonSocial.Value
         .Cells(1, "E").Value = UserForm1.txtRFC.Value
@@ -64,8 +64,9 @@ Public Sub ActualizarPedido()
         .Cells(1, "H").Value = UserForm1.txtEmail.Value
         .Cells(1, "I").Value = UserForm1.txtDomFiscal.Value
         .Cells(1, "J").Value = UserForm1.txtDirEntrega.Value
-        .Cells(1, "K").Value = UserForm1.txtFechaEntrega.Value
+        .Cells(1, "K").Value = ValorFecha(UserForm1.txtFechaEntrega.Value)
         .Cells(1, "L").Value = UserForm1.cmbEstatus.Value
+        .Cells(1, "P").Value = IIf(UserForm1.EmpresaIDActual > 0, UserForm1.EmpresaIDActual, Empty)
         ' M, N, O se calculan internamente
     End With
 
@@ -89,7 +90,7 @@ Public Sub ActualizarDetallePedido()
     Next i
 
     'Insertar nuevo detalle
-    Call GuardarDetalleNuevo(PedidoID_Activo)
+    'Call GuardarDetalleNuevo(PedidoID_Activo)
 
 End Sub
 
@@ -218,8 +219,8 @@ Public Sub CargarUnProducto(ws As Worksheet, ByVal Fila As Long)
         .Controls("cmbTec" & idx).Value = ws.Cells(Fila, "C").Value
         .Controls("txtMat" & idx).Value = ws.Cells(Fila, "D").Value
         .Controls("txtFechaRec" & idx).Value = ws.Cells(Fila, "E").Value
-        .Controls("txtCant" & idx).Value = ws.Cells(Fila, "F").Value
-        .Controls("txtPrecio" & idx).Value = ws.Cells(Fila, "G").Value
+        .Controls("txtCant" & idx).Value = NumeroATexto(ws.Cells(Fila, "F").Value)
+        .Controls("txtPrecio" & idx).Value = NumeroATexto(ws.Cells(Fila, "G").Value)
         .Controls("txtLogo" & idx).Value = ws.Cells(Fila, "H").Value
         .Controls("txtTam" & idx).Value = ws.Cells(Fila, "I").Value
         .Controls("txtPnt" & idx).Value = ws.Cells(Fila, "J").Value
@@ -281,7 +282,7 @@ Public Sub GuardarDetallePedido(ByVal PedidoID As Long)
             .Cells(Fila, "B").Value = i
             .Cells(Fila, "C").Value = UserForm1.frProductos.Controls("cmbTec" & i).Value
             .Cells(Fila, "D").Value = UserForm1.frProductos.Controls("txtMat" & i).Value
-            .Cells(Fila, "E").Value = UserForm1.frProductos.Controls("txtFechaRec" & i).Value
+            .Cells(Fila, "E").Value = ValorFecha(UserForm1.frProductos.Controls("txtFechaRec" & i).Value)
             .Cells(Fila, "F").Value = Val(UserForm1.frProductos.Controls("txtCant" & i).Value)
             .Cells(Fila, "G").Value = Val(UserForm1.frProductos.Controls("txtPrecio" & i).Value)
             .Cells(Fila, "H").Value = UserForm1.frProductos.Controls("txtLogo" & i).Value
@@ -331,7 +332,7 @@ Public Sub CargarImagenSeguro(ByVal img As MSForms.Image, ByVal ruta As String)
     
     On Error Resume Next
     
-    img.Picture = LoadPicture(ruta)
+    Set img.Picture = CargarPicture(RutaAbsolutaImagen(ruta))
     
     If Err.Number <> 0 Then
         Err.Clear

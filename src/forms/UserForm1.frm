@@ -17,6 +17,8 @@ Public TotalProductos As Long
 Private Eventos As Collection
 Private hayCoincidencias As Boolean 'nvo
 Private Guardando As Boolean
+Public EmpresaIDActual As Long                      'empresa del pedido en captura (0 = ninguna)
+Private WithEvents lstEmpresas As MSForms.ListBox  'lista de empresas (se crea en Initialize)
 
 
 
@@ -323,7 +325,16 @@ Private Sub UserForm_Initialize()
     'INICIALIZACIÓN DE LA LISTA DROPDOWN DE CLIENTES
     With Me.lstClientes
         .Visible = False
-        .ColumnCount = 1
+        .ColumnCount = 2                'columna 1 oculta: fila en la hoja Clientes
+        .IntegralHeight = False
+        .Height = 90
+    End With
+
+    'LISTA DROPDOWN DE EMPRESAS (se crea aquí, en el mismo contenedor que txtRazonSocial)
+    Set lstEmpresas = Me.txtRazonSocial.Parent.Controls.Add("Forms.ListBox.1", "lstEmpresas")
+    With lstEmpresas
+        .Visible = False
+        .ColumnCount = 2                'columna 1 oculta: fila en la hoja Empresas
         .IntegralHeight = False
         .Height = 90
     End With
@@ -413,7 +424,9 @@ Private Sub txtNombreContacto_Change()
 
     For i = 2 To ultFila
         If InStr(1, ws.Cells(i, "A").Value, texto, vbTextCompare) > 0 Then
-            Me.lstClientes.AddItem ws.Cells(i, "A").Value
+            Me.lstClientes.AddItem ws.Cells(i, "A").Value & _
+                IIf(Trim(ws.Cells(i, "B").Value) <> "", "  -  " & ws.Cells(i, "B").Value, "")
+            Me.lstClientes.List(Me.lstClientes.ListCount - 1, 1) = i
         End If
     Next i
 
@@ -435,6 +448,7 @@ Private Sub MostrarDropdownClientes()
         .Left = Me.txtNombreContacto.Left
         .Top = Me.txtNombreContacto.Top + Me.txtNombreContacto.Height
         .Width = Me.txtNombreContacto.Width
+        .ColumnWidths = (.Width - 4) & ";0"
         .Visible = True
         .ZOrder 0
     End With
@@ -450,7 +464,7 @@ Private Sub lstClientes_Click()
     ' Forzar foco primero (clave anti-crash)
     Me.lstClientes.SetFocus
 
-    AutorrellenarCliente Me.lstClientes.Value
+    AutorrellenarCliente CLng(Me.lstClientes.List(Me.lstClientes.ListIndex, 1))
 
 End Sub
 
@@ -481,18 +495,11 @@ Private Sub txtNombreContacto_KeyDown( _
 End Sub
 
 'AUTORRELENO DE HOJA 1
-Private Sub AutorrellenarCliente(ByVal NombreCliente As String)
+Private Sub AutorrellenarCliente(ByVal Fila As Long)
 
-    Dim ws As Worksheet
-    Dim Fila As Long
-    
-    Set ws = Sheets("Clientes")
-    
-    Fila = Application.Match(NombreCliente, ws.Columns("A"), 0)
-    
-    If IsError(Fila) Then Exit Sub
-    
-    With ws
+    Dim filaEmp As Long
+
+    With Sheets("Clientes")
         Me.txtNombreContacto.Value = .Cells(Fila, "A").Value
         Me.txtRazonSocial.Value = .Cells(Fila, "B").Value
         Me.txtRFC.Value = .Cells(Fila, "C").Value
@@ -500,13 +507,74 @@ Private Sub AutorrellenarCliente(ByVal NombreCliente As String)
         Me.txtTel2.Value = .Cells(Fila, "E").Value
         Me.txtEmail.Value = .Cells(Fila, "F").Value
         Me.txtDomFiscal.Value = .Cells(Fila, "G").Value
+        filaEmp = FilaEmpresaPorID(Val(.Cells(Fila, "H").Value))
     End With
+
+    ' Si el contacto está ligado a una empresa, los datos fiscales vienen de Empresas
+    If filaEmp > 0 Then LlenarEmpresa filaEmp
     
     ' Ocultar dropdown
     Me.lstClientes.Visible = False
     
     ' Enfocar siguiente campo lógico
     Me.txtTel.SetFocus
+End Sub
+
+'*********************************************************************************************************************************
+'--------------- BUSCADOR DE EMPRESAS (RAZÓN SOCIAL O RFC) ----------------------
+'*********************************************************************************************************************************
+'KeyUp y no Change: así la lista solo aparece cuando el usuario escribe, no cuando el
+'código llena el campo (autorrelleno, cargar pedido)
+Private Sub txtRazonSocial_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+
+    If KeyCode = vbKeyEscape Or KeyCode = vbKeyReturn Or KeyCode = vbKeyTab Then
+        lstEmpresas.Visible = False
+        Exit Sub
+    End If
+
+    If Len(Trim(Me.txtRazonSocial.Text)) < 2 Then
+        lstEmpresas.Visible = False
+        Exit Sub
+    End If
+
+    LlenarListaEmpresas lstEmpresas, Trim(Me.txtRazonSocial.Text)
+    If lstEmpresas.ListCount = 0 Then
+        lstEmpresas.Visible = False
+        Exit Sub
+    End If
+
+    With lstEmpresas
+        .Left = Me.txtRazonSocial.Left
+        .Top = Me.txtRazonSocial.Top + Me.txtRazonSocial.Height
+        .Width = Me.txtRazonSocial.Width
+        .ColumnWidths = (.Width - 4) & ";0"
+        .ListIndex = -1
+        .Visible = True
+        .ZOrder 0
+    End With
+
+End Sub
+
+Private Sub lstEmpresas_Click()
+
+    If lstEmpresas.ListIndex = -1 Then Exit Sub
+
+    ' Forzar foco primero (igual que en lstClientes)
+    lstEmpresas.SetFocus
+
+    LlenarEmpresa CLng(lstEmpresas.List(lstEmpresas.ListIndex, 1))
+    lstEmpresas.Visible = False
+    Me.txtDirEntrega.SetFocus
+
+End Sub
+
+' Datos fiscales del formulario desde una fila de la hoja Empresas
+Private Sub LlenarEmpresa(ByVal filaEmp As Long)
+    With Sheets("Empresas")
+        Me.txtRazonSocial.Value = .Cells(filaEmp, "B").Value
+        Me.txtRFC.Value = .Cells(filaEmp, "C").Value
+    End With
+    Me.txtDomFiscal.Value = DomicilioEmpresa(filaEmp)
 End Sub
 
 
@@ -688,8 +756,9 @@ Private Sub GuardarPedido()
         .Cells(filaPed, "H").Value = Me.txtEmail.Value 'email
         .Cells(filaPed, "I").Value = Me.txtDomFiscal.Value 'domfiscal
         .Cells(filaPed, "J").Value = Me.txtDirEntrega.Value 'Direccion entrega
-        .Cells(filaPed, "K").Value = Me.txtFechaEntrega.Value 'bien
+        .Cells(filaPed, "K").Value = ValorFecha(Me.txtFechaEntrega.Value)
         .Cells(filaPed, "L").Value = Me.cmbEstatus.Value 'Estatus
+        .Cells(filaPed, "P").Value = IIf(EmpresaIDActual > 0, EmpresaIDActual, Empty)
         
     End With
     
@@ -709,7 +778,7 @@ Private Sub GuardarPedido()
             .Cells(filaDet, 2).Value = i
             .Cells(filaDet, 3).Value = frProductos.Controls("cmbTec" & i).Value
             .Cells(filaDet, 4).Value = frProductos.Controls("txtMat" & i).Value
-            .Cells(filaDet, 5).Value = frProductos.Controls("txtFechaRec" & i).Value
+            .Cells(filaDet, 5).Value = ValorFecha(frProductos.Controls("txtFechaRec" & i).Value)
             .Cells(filaDet, 6).Value = frProductos.Controls("txtCant" & i).Value
             .Cells(filaDet, 7).Value = frProductos.Controls("txtPrecio" & i).Value
             .Cells(filaDet, 8).Value = frProductos.Controls("txtLogo" & i).Value
@@ -757,7 +826,13 @@ Private Sub cmdGuardar_Click()
     '=========================
     If Not ValidarPagina1 Then GoTo SalidaSegura
     If Not ValidarPagina2 Then GoTo SalidaSegura
+    If Not ValidarFechas Then GoTo SalidaSegura
     Application.ScreenUpdating = False
+
+    '=========================
+    ' EMPRESA DEL PEDIDO (si no existe, ofrece registrarla)
+    '=========================
+    EmpresaIDActual = ResolverEmpresa()
 
     '=========================
     ' REGISTRAR / MODIFICAR
@@ -783,7 +858,6 @@ Private Sub cmdGuardar_Click()
     Dim rCliente As ResultadoCliente
     rCliente = DetectarClienteExistente( _
     Me.txtNombreContacto.Value, _
-    Me.txtRFC.Value, _
     Me.txtTel.Value, _
     Me.txtTel2.Value, _
     Me.txtEmail.Value _
@@ -830,6 +904,10 @@ Private Sub ReiniciarFormulario()
     Me.txtDomFiscal.Value = ""
     Me.txtDirEntrega.Value = ""
     Me.cmbEstatus.Value = ""
+    Me.txtFechaEntrega.Value = ""
+    Me.txtFechaEntrega.BackColor = vbWhite
+    EmpresaIDActual = 0
+    lstEmpresas.Visible = False
 
     '=========================
     ' REGENERAR DATOS AUTOMÁTICOS
@@ -886,7 +964,7 @@ Public Sub RenderizarImagenesProductos()
         If TypeOf ctrl Is MSForms.TextBox Then
             If ctrl.Name Like "txtImg*" Then
 
-                ruta = ctrl.Value
+                ruta = RutaAbsolutaImagen(ctrl.Value)
                 idx = Val(Replace(ctrl.Name, "txtImg", ""))
                 
                 On Error Resume Next
@@ -895,7 +973,7 @@ Public Sub RenderizarImagenesProductos()
 
                 If Not img Is Nothing Then
                     If ruta <> "" And Dir(ruta) <> "" Then
-                        img.Picture = LoadPicture(ruta)
+                        Set img.Picture = CargarPicture(ruta)
                     Else
                         img.Picture = Nothing
                     End If
@@ -1002,6 +1080,7 @@ End Sub
 ' ============================================
 Private Sub OcultarListaClientes()
     Me.lstClientes.Visible = False
+    lstEmpresas.Visible = False
 End Sub
 
 ' ============================================
@@ -1059,6 +1138,7 @@ Public Sub GuardarCliente()
         .Cells(Fila, "E").Value = Trim(Me.txtTel2.Value)
         .Cells(Fila, "F").Value = Trim(Me.txtEmail.Value)
         .Cells(Fila, "G").Value = Trim(Me.txtDomFiscal.Value)
+        .Cells(Fila, "H").Value = IIf(EmpresaIDActual > 0, EmpresaIDActual, Empty)
     End With
 
 End Sub
@@ -1101,6 +1181,7 @@ Public Sub ActualizarCliente(ByVal FilaCliente As Long)
     .Cells(FilaCliente, "E").Value = Trim(txtTel2.Value)
     .Cells(FilaCliente, "F").Value = Trim(txtEmail.Value)
     .Cells(FilaCliente, "G").Value = Trim(txtDomFiscal.Value)
+    .Cells(FilaCliente, "H").Value = IIf(EmpresaIDActual > 0, EmpresaIDActual, Empty)
 End With
 
 End Sub
