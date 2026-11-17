@@ -162,6 +162,23 @@ Public Sub LlenarListaEmpresas(ByVal lst As MSForms.ListBox, ByVal texto As Stri
     Next i
 End Sub
 
+' Copia razón social, RFC y domicilio de la empresa a sus contactos (Clientes B, C y G).
+' Los pedidos no se tocan: conservan los datos con que se hicieron.
+Public Sub ActualizarContactosDeEmpresa(ByVal EmpresaID As Long)
+    Dim ws As Worksheet, i As Long, filaEmp As Long
+
+    filaEmp = FilaEmpresaPorID(EmpresaID)
+    If filaEmp = 0 Then Exit Sub
+    Set ws = Sheets("Clientes")
+    For i = 2 To ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+        If Val(ws.Cells(i, "H").Value) = EmpresaID Then
+            ws.Cells(i, "B").Value = Sheets("Empresas").Cells(filaEmp, "B").Value
+            ws.Cells(i, "C").Value = Sheets("Empresas").Cells(filaEmp, "C").Value
+            ws.Cells(i, "G").Value = DomicilioEmpresa(filaEmp)
+        End If
+    Next i
+End Sub
+
 ' Encabezados de las columnas de enlace (por si el libro todavía no los tiene)
 Private Sub AsegurarEncabezados()
     If Sheets("Pedidos").Range("P1").Value = "" Then Sheets("Pedidos").Range("P1").Value = "EmpresaID"

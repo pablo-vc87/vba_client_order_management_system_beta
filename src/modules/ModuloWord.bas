@@ -1,11 +1,13 @@
 Attribute VB_Name = "ModuloWord"
 Option Explicit
 
-' Genera la orden de compra y la orden de trabajo en Word a partir de un pedido.
-' Las plantillas llevan marcadores {{CAMPO}} y UN bloque modelo de productos: la fila
-' con {{TECNICA}} y, opcionalmente, filas debajo con {{OBS_PRODUCTO}} o {{RENDER}}.
-' La macro repite ese bloque una vez por producto, así que no hay límite de productos.
-' Usa EjecutarSQL (ModuloSQL) y RutaAbsolutaImagen (ModuloImagenes).
+' Genera documentos de Word a partir de un pedido: orden de compra, orden de trabajo y
+' (desde ModuloFacturacion) prefactura y complemento de pago.
+' Las plantillas llevan marcadores {{CAMPO}} y, si tienen tabla de productos, UN bloque
+' modelo: la fila con {{TECNICA}} o {{DESCRIPCION}} y, opcionalmente, filas debajo con
+' {{OBS_PRODUCTO}} o {{RENDER}}. La macro repite ese bloque una vez por producto.
+' Usa EjecutarSQL (ModuloSQL), RutaAbsolutaImagen (ModuloImagenes) y
+' DescripcionConcepto e ImporteConLetra (ModuloFacturacion).
 
 Private Const PLANTILLA_OC As String = "Plantilla_Orden_Compra.docx"
 Private Const PLANTILLA_OT As String = "Plantilla_Orden_Trabajo.docx"
@@ -16,13 +18,14 @@ Private Const ALTO_MAX_RENDER As Single = 200   'alto máximo en una fila complet
 Private Const MAX_CELDAS As Long = 30
 
 Private mObservaciones As String                 'observaciones de todos los productos
+Private mExtras As Object                         'valores que no salen del pedido (Dictionary)
 
 Public Sub GenerarOrdenCompra(ByVal PedidoID As Long)
-    GenerarOrden PedidoID, PLANTILLA_OC, "OC"
+    GenerarDocumento PedidoID, PLANTILLA_OC, "OC"
 End Sub
 
 Public Sub GenerarOrdenTrabajo(ByVal PedidoID As Long)
-    GenerarOrden PedidoID, PLANTILLA_OT, "OT"
+    GenerarDocumento PedidoID, PLANTILLA_OT, "OT"
 End Sub
 
 'Banco de pruebas: pide el número de pedido y genera las dos órdenes
@@ -35,9 +38,12 @@ Public Sub ProbarOrdenes()
 End Sub
 
 ' ===============================================
-' Llena una plantilla con el pedido y la guarda en .docx y .pdf
+' Llena una plantilla con el pedido y la guarda en .docx y .pdf.
+' extras: Dictionary MARCADOR -> valor para datos que no están en el pedido (emisor, pago...)
 ' ===============================================
-Private Sub GenerarOrden(ByVal PedidoID As Long, ByVal plantilla As String, ByVal prefijo As String)
+Public Sub GenerarDocumento(ByVal PedidoID As Long, ByVal plantilla As String, _
+                            ByVal prefijo As String, Optional ByVal extras As Object = Nothing, _
+                            Optional ByVal carpetaDestino As String = CARPETA_ORDENES)
     Dim rsPed As Object, rsDet As Object
     Dim wd As Object, doc As Object, tbl As Object, bloque As Object, destino As Object
     Dim rutaPlantilla As String, carpeta As String, archivo As String
@@ -71,13 +77,12 @@ Private Sub GenerarOrden(ByVal PedidoID As Long, ByVal plantilla As String, ByVa
     If wd Is Nothing Then Set wd = CreateObject("Word.Application")
 
     On Error GoTo Fallo
+    Set mExtras = extras
+    mObservaciones = ""
     Set doc = wd.Documents.Add(Template:=rutaPlantilla)
 
-    If Not BuscarFilaModelo(doc, tbl, filaModelo) Then
-        MsgBox "La plantilla no tiene una fila con {{TECNICA}}.", vbExclamation, "CALEIDO"
-        doc.Close False
-        Exit Sub
-    End If
+    'Plantilla sin tabla de productos (ej. complemento de pago): solo el encabezado
+    If Not BuscarFilaModelo(doc, tbl, filaModelo) Then GoTo Encabezado
 
     '3. Guardar el texto del bloque modelo y repetirlo (un bloque por producto)
     nFilas = TamanoBloque(tbl, filaModelo)
@@ -128,22 +133,25 @@ Private Sub GenerarOrden(ByVal PedidoID As Long, ByVal plantilla As String, ByVa
     Loop
     mObservaciones = obs
 
+Encabezado:
     '5. Datos del encabezado (lo que queda fuera de la tabla de productos)
     ReemplazarEnDocumento doc, rsPed
 
     '6. Guardar en la carpeta "ordenes" junto al libro, sin sobrescribir versiones anteriores
-    carpeta = ThisWorkbook.Path & "\" & CARPETA_ORDENES
+    carpeta = ThisWorkbook.Path & "\" & carpetaDestino
     If Dir(carpeta, vbDirectory) = "" Then MkDir carpeta
     archivo = NombreLibre(carpeta & "\" & prefijo & "_" & Format(PedidoID, "0000") & "_" & _
               NombreArchivo(Texto(Campo(rsPed, "RazonSocial"))))
     doc.SaveAs2 archivo & ".docx", 16          'wdFormatDocumentDefault
     doc.ExportAsFixedFormat archivo & ".pdf", 17   'wdExportFormatPDF
 
+    Set mExtras = Nothing
     wd.Visible = True
     doc.Activate
     Exit Sub
 
 Fallo:
+    Set mExtras = Nothing
     MsgBox "No se pudo generar la orden:" & vbCrLf & Err.Description & vbCrLf & vbCrLf & _
            "Si el archivo ya estaba abierto en Word, ciérralo e inténtalo de nuevo.", _
            vbCritical, "CALEIDO"
@@ -151,14 +159,15 @@ Fallo:
 End Sub
 
 ' ===============================================
-' Busca la tabla y la fila que contienen {{TECNICA}}
+' Busca la tabla y la fila modelo de productos ({{TECNICA}} o {{DESCRIPCION}})
 ' ===============================================
 Private Function BuscarFilaModelo(ByVal doc As Object, ByRef tbl As Object, _
                                   ByRef Fila As Long) As Boolean
     Dim t As Object, r As Long
     For Each t In doc.Tables
         For r = 1 To t.Rows.Count
-            If InStr(t.Rows(r).Range.Text, "{{TECNICA}}") > 0 Then
+            If InStr(t.Rows(r).Range.Text, "{{TECNICA}}") > 0 Or _
+               InStr(t.Rows(r).Range.Text, "{{DESCRIPCION}}") > 0 Then
                 Set tbl = t
                 Fila = r
                 BuscarFilaModelo = True
@@ -168,13 +177,14 @@ Private Function BuscarFilaModelo(ByVal doc As Object, ByRef tbl As Object, _
     Next t
 End Function
 
-' Filas del bloque modelo: la de {{TECNICA}} más las que siguen con {{OBS_PRODUCTO}} o {{RENDER}}
+' Filas del bloque modelo: la de {{TECNICA}}/{{DESCRIPCION}} más las que siguen con {{OBS_PRODUCTO}} o {{RENDER}}
 Private Function TamanoBloque(ByVal tbl As Object, ByVal filaModelo As Long) As Long
     Dim r As Long, t As String
     TamanoBloque = 1
     For r = filaModelo + 1 To tbl.Rows.Count
         t = tbl.Rows(r).Range.Text
         If InStr(t, "{{OBS_PRODUCTO}}") = 0 And InStr(t, "{{RENDER}}") = 0 Then Exit For
+        If InStr(t, "{{TECNICA}}") > 0 Or InStr(t, "{{DESCRIPCION}}") > 0 Then Exit For
         TamanoBloque = TamanoBloque + 1
     Next r
 End Function
@@ -271,6 +281,13 @@ End Sub
 ' ===============================================
 Private Function Valor(ByVal nombre As String, ByVal rsPed As Object, _
                        ByVal rsDet As Object) As String
+    If Not mExtras Is Nothing Then
+        If mExtras.Exists(nombre) Then
+            Valor = mExtras(nombre)
+            Exit Function
+        End If
+    End If
+
     Select Case nombre
         'Pedido
         Case "PEDIDO":            Valor = Texto(Campo(rsPed, "PedidoID"))
@@ -283,7 +300,10 @@ Private Function Valor(ByVal nombre As String, ByVal rsPed As Object, _
                                                Texto(Campo(rsPed, "Telefono2")), " / ")
         Case "FECHA_ENTREGA":     Valor = Fecha(Campo(rsPed, "FechaEntrega"))
         Case "DIRECCION_ENTREGA": Valor = Texto(Campo(rsPed, "DireccionEntrega"))
+        Case "SUBTOTAL_PEDIDO":   Valor = Dinero(Campo(rsPed, "SubtotalPedido"))
+        Case "IVA_PEDIDO":        Valor = Dinero(Campo(rsPed, "IVAPedido"))
         Case "TOTAL_PEDIDO":      Valor = Dinero(Campo(rsPed, "TotalPedido"))
+        Case "TOTAL_LETRA":       Valor = ImporteConLetra(Numero(Campo(rsPed, "TotalPedido")))
         Case "OBSERVACIONES":     Valor = mObservaciones
         Case Else
             'Producto
@@ -301,6 +321,9 @@ Private Function Valor(ByVal nombre As String, ByVal rsPed As Object, _
                 Case "LOGO":            Valor = Texto(Campo(rsDet, "NombreLogo"))
                 Case "TAMANO_LOGO":     Valor = Texto(Campo(rsDet, "TamanoLogo"))
                 Case "OBS_PRODUCTO":    Valor = Texto(Campo(rsDet, "Observaciones"))
+                'Prefactura
+                Case "DESCRIPCION":     Valor = DescripcionConcepto(Texto(Campo(rsDet, "Material")), _
+                                                Texto(Campo(rsDet, "TamanoLogo")))
             End Select
     End Select
 End Function

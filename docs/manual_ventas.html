@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Sistema de pedidos CALEIDO - Guía de uso</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #222; line-height: 1.35; }
+  h1 { font-size: 20pt; color: #1F3864; margin-bottom: 2pt; }
+  h2 { font-size: 14pt; color: #1F3864; border-bottom: 1.5pt solid #1F3864; padding-bottom: 2pt; margin-top: 16pt; }
+  h3 { font-size: 12pt; color: #2E5597; margin-top: 12pt; margin-bottom: 4pt; }
+  p { margin: 4pt 0; }
+  ol, ul { margin-top: 2pt; margin-bottom: 4pt; }
+  li { margin-bottom: 2pt; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0; }
+  th { background: #D9E2F3; text-align: left; }
+  th, td { border: 0.75pt solid #8EA9DB; padding: 3pt 6pt; vertical-align: top; font-size: 10.5pt; }
+  .nota { background: #FFF2CC; border-left: 3pt solid #BF9000; padding: 4pt 8pt; margin: 6pt 0; }
+  .aviso { background: #FCE4D6; border-left: 3pt solid #C55A11; padding: 4pt 8pt; margin: 6pt 0; }
+  .sub { color: #555; font-size: 10.5pt; }
+  code { font-family: Consolas, monospace; font-size: 10pt; }
+</style>
+</head>
+<body>
+
+<h1>Sistema de pedidos CALEIDO</h1>
+<p class="sub">Guía de uso para el equipo de ventas · Versión de prueba · Octubre 2026</p>
+
+<p>El sistema registra pedidos, clientes y empresas en un libro de Excel y genera en Word y PDF las órdenes de compra y de trabajo, las prefacturas y los complementos de pago.</p>
+
+<h2>1. Antes de empezar</h2>
+<ol>
+  <li><b>Mantén todos los archivos juntos.</b> El Excel busca las plantillas y las carpetas en su misma carpeta. Si mueves el sistema, mueve la carpeta completa.</li>
+  <li><b>Abre <code>CALEIDO_Pedidos.xlsm</code> y pulsa «Habilitar contenido»</b> en la barra amarilla. Sin esto los botones no funcionan.<br>
+      Si aparece una barra roja de «Riesgo de seguridad»: cierra Excel, haz clic derecho en el archivo → <i>Propiedades</i> → marca <i>Desbloquear</i> → <i>Aceptar</i>, y vuelve a abrirlo.</li>
+  <li>Se necesita <b>Microsoft Word</b> instalado para generar las órdenes y las facturas.</li>
+  <li>Todo se hace desde la hoja <b>Comandos</b>, con los botones.</li>
+</ol>
+
+<h3>Contenido de la carpeta</h3>
+<table>
+  <tr><th>Archivo o carpeta</th><th>Para qué sirve</th></tr>
+  <tr><td><code>CALEIDO_Pedidos.xlsm</code></td><td>El sistema: botones, formularios y la base de datos.</td></tr>
+  <tr><td><code>Plantilla_*.docx</code> (4 archivos)</td><td>Formatos de la cotización, orden de trabajo, prefactura y complemento de pago. <b>No los muevas ni les cambies el nombre.</b></td></tr>
+  <tr><td><code>imagenes\</code></td><td>Copias de las imágenes (renders) de los productos.</td></tr>
+  <tr><td><code>ordenes\</code></td><td>Órdenes de compra y de trabajo generadas.</td></tr>
+  <tr><td><code>facturas\</code></td><td>Prefacturas y complementos de pago generados.</td></tr>
+</table>
+
+<h2>2. Botones de la hoja Comandos</h2>
+
+<h3>REGISTRAR PEDIDO</h3>
+<p><b>Página 1 · Cliente</b></p>
+<ol>
+  <li>Escribe el <b>nombre del contacto</b>. Desde la 2.ª letra aparece una lista con «Nombre - Empresa». Si eliges uno, se llenan solos su teléfono, correo y datos fiscales.</li>
+  <li>En <b>Razón social</b> puedes escribir parte del nombre o del RFC de la empresa: aparece la lista de empresas registradas. Al elegir una se llenan el RFC y el domicilio fiscal.</li>
+  <li>Completa teléfono, correo, estatus, dirección de entrega y la <b>fecha de entrega</b> (botón del calendario).</li>
+  <li>Pulsa <b>Siguiente</b>.</li>
+</ol>
+<p><b>Página 2 · Productos</b></p>
+<ol>
+  <li>Pulsa <b>Agregar producto</b> por cada producto: técnica, material, fecha de recepción del material (calendario), cantidad, precio unitario, nombre y tamaño del logo, pantone, imagen (botón <i>Imagen…</i>) y observaciones.</li>
+  <li>Pulsa <b>Guardar</b>.</li>
+</ol>
+<div class="nota">
+  <b>Reglas al guardar</b>
+  <ul>
+    <li>La fecha de entrega y las fechas de recepción no pueden ser anteriores a la fecha del pedido; ninguna recepción puede ser posterior a la entrega. Los campos con error se marcan en rojo.</li>
+    <li>El precio se escribe con <b>punto decimal</b> (ej. <code>12.50</code>).</li>
+    <li>Si la empresa no está registrada, el sistema pregunta si quieres registrarla y abre el formulario de empresa. Si contestas que no, el pedido se guarda sin empresa (no se podrá facturar hasta ligarlo).</li>
+    <li>Si el contacto es nuevo, pregunta si quieres registrarlo; si cambiaste datos de un contacto existente, pregunta si quieres actualizarlo.</li>
+    <li>Las imágenes se copian a la carpeta <code>imagenes\</code>, así que el archivo original puede borrarse después.</li>
+  </ul>
+</div>
+
+<h3>BUSCAR / MODIFICAR / ELIMINAR PEDIDO</h3>
+<ol>
+  <li>Escribe en el buscador parte del <b>nombre del cliente, el RFC o la razón social</b>; la lista se filtra mientras escribes.</li>
+  <li>Selecciona el pedido y elige:
+    <ul>
+      <li><b>Modificar:</b> abre el pedido con sus datos y productos. Al guardar, vuelves a la búsqueda con el cambio visible.</li>
+      <li><b>Eliminar:</b> pide la <b>contraseña de administrador</b> (pídela a quien administra el sistema). Eliminar un pedido no se puede deshacer.</li>
+    </ul>
+  </li>
+</ol>
+
+<h3>INGRESAR EMPRESA</h3>
+<p>Registra una empresa sin capturar un pedido. Campos obligatorios: <b>razón social</b> y <b>RFC</b> (12 caracteres para empresas, 13 para personas físicas). Opcionales: domicilio por partes, C.P. (5 dígitos), régimen fiscal, uso del CFDI (normalmente <i>G03 - Gastos en general</i>) y correo de facturación. Copia los datos de la <b>constancia de situación fiscal</b> del cliente.</p>
+
+<h3>CONTACTOS / EMPRESAS</h3>
+<ol>
+  <li>Busca por nombre, empresa, teléfono o correo.</li>
+  <li>Al seleccionar un contacto, sus datos aparecen abajo:
+    <ul>
+      <li><b>Guardar cambios:</b> actualiza nombre, teléfonos, correo y la empresa a la que pertenece.</li>
+      <li><b>Editar empresa:</b> abre los datos fiscales de la empresa elegida en la lista «Empresa» (sirve también para empresas sin contactos). Al guardar, los contactos de esa empresa se actualizan.</li>
+      <li><b>Eliminar contacto:</b> pide confirmación. Los pedidos de ese contacto no se modifican.</li>
+    </ul>
+  </li>
+</ol>
+
+<h3>GENERAR ÓRDENES</h3>
+<p>Pide el <b>número de pedido</b> y crea la <b>cotización (archivo OC_…)</b> y la <b>orden de trabajo (OT)</b> en Word y PDF dentro de <code>ordenes\</code>. Word se abre con los documentos para revisarlos. Si Word ya tenía abierto un archivo con el mismo nombre, ciérralo y vuelve a intentarlo.</p>
+
+<h3>FACTURACIÓN</h3>
+<ol>
+  <li>Pide el <b>número de pedido</b>. El pedido debe estar <b>ligado a una empresa</b> (si no lo está, ábrelo en <i>Buscar → Modificar</i>, elige la empresa y guarda).</li>
+  <li>Elige el <b>método de pago</b>, la <b>forma de pago</b> y el <b>uso del CFDI</b>:
+    <ul>
+      <li><b>PUE – Pago en una sola exhibición:</b> el cliente paga todo al facturar. Elige la forma real (ej. <i>03 - Transferencia</i>).</li>
+      <li><b>PPD – Pago en parcialidades o diferido:</b> anticipo o pagos posteriores. La forma de pago se pone sola en <i>99 - Por definir</i>, y cada abono se registra con el botón <b>REGISTRAR PAGO</b>.</li>
+    </ul>
+  </li>
+  <li>Se genera la <b>prefactura</b> en <code>facturas\</code> con emisor, receptor, conceptos (descripción con material y tamaño), totales e importe con letra. Las <b>claves de producto/servicio y de unidad del SAT</b> no aparecen: se capturan al timbrar la factura en el portal del SAT.</li>
+</ol>
+
+<h3>REGISTRAR PAGO</h3>
+<p>Solo para pedidos facturados con <b>PPD</b>. Pide el número de pedido y muestra total, pagado y saldo. Captura la <b>fecha de pago</b>, el <b>monto</b> (no puede ser mayor que el saldo), la <b>forma de pago</b> y el <b>UUID</b> (folio fiscal) de la factura ya timbrada; el UUID se guarda para los siguientes pagos. Se registra el abono en la hoja <i>Pagos</i> y se genera el <b>complemento de pago</b> en <code>facturas\</code>. Cuando el saldo llega a cero, el sistema avisa que el pedido ya está pagado.</p>
+
+<div class="aviso">
+  <b>Importante:</b> la prefactura y el complemento de pago <b>no son comprobantes fiscales</b>. Son documentos con los datos para emitir el CFDI en el portal del SAT o del proveedor de facturación (PAC). Después de timbrar, guarda el UUID de la factura: lo pide el registro de pagos.
+</div>
+
+<h2>3. Dónde quedan los documentos</h2>
+<table>
+  <tr><th>Documento</th><th>Carpeta</th><th>Nombre del archivo (ejemplo)</th></tr>
+  <tr><td>Cotización</td><td><code>ordenes\</code></td><td><code>OC_0012_RAZON SOCIAL.docx</code> y <code>.pdf</code></td></tr>
+  <tr><td>Orden de trabajo</td><td><code>ordenes\</code></td><td><code>OT_0012_RAZON SOCIAL.docx</code> y <code>.pdf</code></td></tr>
+  <tr><td>Prefactura</td><td><code>facturas\</code></td><td><code>PF_0012_RAZON SOCIAL.docx</code> y <code>.pdf</code></td></tr>
+  <tr><td>Complemento de pago</td><td><code>facturas\</code></td><td><code>REP-P1_0012_RAZON SOCIAL.pdf</code> (P1 = parcialidad 1, P2 = parcialidad 2…)</td></tr>
+  <tr><td>Imágenes de productos</td><td><code>imagenes\</code></td><td>El nombre original de la imagen</td></tr>
+</table>
+<p>Los documentos <b>nunca se sobrescriben</b>: si generas otra vez la orden de un pedido modificado, se guarda como <code>_v2</code>, <code>_v3</code>, etc., y las versiones anteriores se conservan.</p>
+
+<h2>4. Configuración (solo administración)</h2>
+<h3>Hoja Config: datos de CALEIDO como emisor</h3>
+<p>Se llena una sola vez, en la <b>columna B</b>, junto a cada campo:</p>
+<table>
+  <tr><th>Celda</th><th>Campo</th><th>Qué escribir</th></tr>
+  <tr><td>B2</td><td>RFC</td><td>RFC de CALEIDO.</td></tr>
+  <tr><td>B3</td><td>RazonSocial</td><td>Nombre o razón social tal como aparece en la constancia de situación fiscal.</td></tr>
+  <tr><td>B4</td><td>RegimenFiscal</td><td>Solo la <b>clave</b> del régimen (3 dígitos), ej. <code>612</code> o <code>626</code>. No escribas PUE ni formas de pago aquí.</td></tr>
+  <tr><td>B5</td><td>CPExpedicion</td><td><b>Código postal</b> de 5 dígitos del domicilio fiscal.</td></tr>
+</table>
+<p>Si falta un dato o no es válido, el botón de facturación indica qué celda corregir.</p>
+
+<h3>Hoja DATOS</h3>
+<p>La columna C contiene la lista de <b>estatus</b> del pedido que aparece en el formulario.</p>
+
+<div class="nota">
+  <b>No cambies</b> los nombres de las hojas, los encabezados de las columnas ni el orden de las columnas de <i>Pedidos, Detalle_Pedidos, Clientes, Empresas, Config y Pagos</i>; el sistema los usa para leer y guardar. Para cambiar el formato de un documento, edita su plantilla en Word, pero conserva los textos entre llaves como <code>{{PEDIDO}}</code>.
+</div>
+
+<h2>5. Problemas frecuentes</h2>
+<table>
+  <tr><th>Mensaje o situación</th><th>Qué hacer</th></tr>
+  <tr><td>Los botones no hacen nada</td><td>Las macros están deshabilitadas: pulsa «Habilitar contenido» o desbloquea el archivo (sección 1).</td></tr>
+  <tr><td>«No se encontró la plantilla»</td><td>El Excel no está en la misma carpeta que las plantillas. Mantén la carpeta completa.</td></tr>
+  <tr><td>«No se pudo generar la orden»</td><td>Cierra en Word el documento con el mismo nombre y vuelve a intentarlo.</td></tr>
+  <tr><td>«Faltan datos del emisor en la hoja Config»</td><td>Llena o corrige la celda que indica el mensaje (sección 4).</td></tr>
+  <tr><td>«El pedido no está ligado a una empresa»</td><td><i>Buscar → Modificar</i>, elige la empresa en «Razón social» y guarda.</td></tr>
+  <tr><td>«El complemento de pago solo aplica a facturas con método PPD»</td><td>Genera primero la prefactura con método PPD.</td></tr>
+  <tr><td>La imagen de un producto no se ve</td><td>Revisa que el archivo exista en <code>imagenes\</code>.</td></tr>
+  <tr><td>«No se pudo terminar de guardar: …»</td><td>Toma una captura del mensaje y envíala a quien administra el sistema.</td></tr>
+</table>
+
+<p class="sub">Versión de prueba: los pedidos, contactos y pagos que ya aparecen en el libro son datos de prueba. Reporta cualquier error con una captura de pantalla y el número de pedido.</p>
+
+</body>
+</html>

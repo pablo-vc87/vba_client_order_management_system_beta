@@ -811,6 +811,9 @@ End Sub
 '*********************************************************************************************************************************
 'GUARDA LOS DATOS INGRESADOS EN LA BASE DE DATOS
 Private Sub cmdGuardar_Click()
+
+    Dim esModificacion As Boolean      'se lee una vez: el modo no debe cambiar a mitad del guardado
+    Dim terminado As Boolean
     
     '=========================
     ' BLOQUEO ANTI DOBLE CLICK
@@ -818,6 +821,7 @@ Private Sub cmdGuardar_Click()
     If Guardando Then Exit Sub
     Guardando = True
     Me.cmdGuardar.Enabled = False
+    esModificacion = (ModoFormulario = "MODIFICAR")
 
     On Error GoTo SalidaSegura
 
@@ -837,12 +841,12 @@ Private Sub cmdGuardar_Click()
     '=========================
     ' REGISTRAR / MODIFICAR
     '=========================
-    If ModoFormulario = "REGISTRAR" Then
+    If Not esModificacion Then
         
         GuardarPedido
         MsgBox "Pedido guardado correctamente", vbInformation, "CALEIDO"
         
-    ElseIf ModoFormulario = "MODIFICAR" Then
+    Else
 
         ActualizarPedido
         EliminarDetallePedido PedidoID_Activo
@@ -866,12 +870,21 @@ Private Sub cmdGuardar_Click()
     DecidirActualizacionCliente rCliente
     
     ThisWorkbook.Save
-    Call ReiniciarFormulario
+
+    'Al registrar, el formulario queda listo para el siguiente pedido; al modificar se
+    'cierra abajo y CargarPedido vuelve a abrir la búsqueda
+    If Not esModificacion Then Call ReiniciarFormulario
+    terminado = True
 
 SalidaSegura:
+    If Err.Number <> 0 Then
+        MsgBox "No se pudo terminar de guardar:" & vbCrLf & Err.Description & _
+               " (error " & Err.Number & ")", vbCritical, "CALEIDO"
+    End If
     Guardando = False
     Me.cmdGuardar.Enabled = True
     Application.ScreenUpdating = True
+    If terminado And esModificacion Then Unload Me
 End Sub
 
 

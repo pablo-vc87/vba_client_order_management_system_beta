@@ -10,9 +10,10 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
-' Alta de una empresa nueva en la hoja Empresas.
+' Alta o modificación de una empresa en la hoja Empresas.
 ' Los controles se crean al abrir el formulario: no hay que dibujarlos.
 ' Uso: EmpresaID = frmEmpresa.Registrar(razon, rfc, email, domicilio)   (0 si se cancela)
+'      cambio = frmEmpresa.Editar(filaEmpresa)                            (False si se cancela)
 
 ' Campo|Etiqueta, en el orden de las columnas B a N de la hoja Empresas
 Private Const CAMPOS As String = "RazonSocial|Razón social *;RFC|RFC *;Calle|Calle;" & _
@@ -21,6 +22,7 @@ Private Const CAMPOS As String = "RazonSocial|Razón social *;RFC|RFC *;Calle|Cal
     "UsoCFDI|Uso de CFDI;EmailFacturacion|Correo de facturación"
 
 Private mID As Long
+Private mFila As Long                'fila que se modifica (0 = empresa nueva)
 Private lblDomicilio As MSForms.Label
 Private WithEvents cmdGuardarEmp As MSForms.CommandButton
 Private WithEvents cmdCancelarEmp As MSForms.CommandButton
@@ -28,6 +30,7 @@ Private WithEvents cmdCancelarEmp As MSForms.CommandButton
 Public Function Registrar(ByVal razon As String, ByVal RFC As String, _
                           ByVal Email As String, ByVal domicilio As String) As Long
     mID = 0
+    mFila = 0
     Ctl("RazonSocial").Value = Trim(razon)
     Ctl("RFC").Value = UCase(Trim(RFC))
     Ctl("EmailFacturacion").Value = Trim(Email)
@@ -39,6 +42,48 @@ Public Function Registrar(ByVal razon As String, ByVal RFC As String, _
     Registrar = mID
     Unload Me
 End Function
+
+Public Function Editar(ByVal filaEmp As Long) As Boolean
+    Dim lista() As String, i As Long, campo As String, v As String
+
+    mID = 0
+    mFila = filaEmp
+    Me.Caption = "CALEIDO | Modificar empresa (ID " & EmpresaIDDeFila(filaEmp) & ")"
+    cmdGuardarEmp.Caption = "Guardar cambios"
+
+    lista = Split(CAMPOS, ";")
+    For i = 0 To UBound(lista)
+        campo = Split(lista(i), "|")(0)
+        v = Trim(CStr(Sheets("Empresas").Cells(filaEmp, i + 2).Value))
+        If campo = "RegimenFiscal" Or campo = "UsoCFDI" Then
+            ElegirClave Ctl(campo), v
+        Else
+            Ctl(campo).Value = v
+        End If
+    Next i
+
+    Me.Show
+    Editar = (mID > 0)
+    Unload Me
+End Function
+
+' Selecciona en la lista el elemento con esa clave; si la clave no está en la lista
+' (ej. un uso de CFDI antiguo), la agrega para no perderla al guardar
+Private Sub ElegirClave(ByVal cmb As Control, ByVal clave As String)
+    Dim i As Long
+    If clave = "" Then
+        cmb.ListIndex = -1
+        Exit Sub
+    End If
+    For i = 0 To cmb.ListCount - 1
+        If ClaveCatalogo(cmb.List(i)) = clave Then
+            cmb.ListIndex = i
+            Exit Sub
+        End If
+    Next i
+    cmb.AddItem clave
+    cmb.ListIndex = cmb.ListCount - 1
+End Sub
 
 Private Sub UserForm_Initialize()
     Dim lista() As String, p() As String, i As Long, t As Single
@@ -95,7 +140,6 @@ Private Sub UserForm_Initialize()
         .AddItem "G02 - Devoluciones, descuentos o bonificaciones"
         .AddItem "G03 - Gastos en general"
         .AddItem "S01 - Sin efectos fiscales"
-        .AddItem "CP01 - Pagos"
         .Value = "G03 - Gastos en general"
     End With
     Ctl("Pais").Value = "MEXICO"
@@ -144,16 +188,22 @@ Private Sub cmdGuardarEmp_Click()
 
     If Not Validar() Then Exit Sub
 
-    If BuscarEmpresa(Ctl("RFC").Value, Ctl("RazonSocial").Value) > 0 Then
-        MsgBox "Ya existe una empresa con ese RFC (o con esa razón social, si el RFC es genérico).", _
+    Fila = BuscarEmpresa(Ctl("RFC").Value, Ctl("RazonSocial").Value)
+    If Fila > 0 And Fila <> mFila Then
+        MsgBox "Ya existe otra empresa con ese RFC (o con esa razón social, si el RFC es genérico).", _
                vbExclamation, "CALEIDO"
         Exit Sub
     End If
 
     Set ws = Sheets("Empresas")
-    Fila = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row + 1
-    mID = NuevoEmpresaID()
-    ws.Cells(Fila, "A").Value = mID
+    If mFila > 0 Then
+        Fila = mFila
+        mID = EmpresaIDDeFila(mFila)
+    Else
+        Fila = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row + 1
+        mID = NuevoEmpresaID()
+        ws.Cells(Fila, "A").Value = mID
+    End If
 
     lista = Split(CAMPOS, ";")
     For i = 0 To UBound(lista)
@@ -163,12 +213,15 @@ Private Sub cmdGuardarEmp_Click()
             Select Case campo
                 Case "RFC":           .Value = UCase(v)
                 Case "CP":            .NumberFormat = "@": .Value = v
-                Case "RegimenFiscal": If v <> "" Then .Value = Val(v)            '"601 - ..." -> 601
-                Case "UsoCFDI":       If v <> "" Then .Value = Split(v, " ")(0)  '"G03 - ..." -> G03
+                Case "RegimenFiscal": .Value = IIf(v = "", Empty, Val(v))     '"601 - ..." -> 601
+                Case "UsoCFDI":       .Value = ClaveCatalogo(v)                '"G03 - ..." -> G03
                 Case Else:            .Value = v
             End Select
         End With
     Next i
+
+    'Los contactos ligados guardan una copia de razón social, RFC y domicilio
+    If mFila > 0 Then ActualizarContactosDeEmpresa mID
 
     Me.Hide
 End Sub

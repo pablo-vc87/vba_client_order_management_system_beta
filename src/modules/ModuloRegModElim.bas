@@ -140,7 +140,23 @@ Public Sub CargarPedido(ByVal PedidoID As Long)
         .Show   ' ?? AQUÍ VA, y SOLO AQUÍ
     End With
     '===================
+
+    ' Al guardar o cerrar la modificación, volver a la búsqueda (con la lista actualizada)
+    If FormularioCargado("UserForm1") Then Unload UserForm1
+    ModoFormulario = "MODIFICAR"
+    Busqueda.Show
 End Sub
+
+' True si el formulario está cargado (sin crearlo, como pasaría al nombrarlo)
+Private Function FormularioCargado(ByVal nombre As String) As Boolean
+    Dim f As Object
+    For Each f In VBA.UserForms
+        If f.Name = nombre Then
+            FormularioCargado = True
+            Exit Function
+        End If
+    Next f
+End Function
 
 '=================================================
 ' CARGAR DATOS DE PEDIDO (vacía datos de pedido en formulario)
